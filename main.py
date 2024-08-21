@@ -86,7 +86,7 @@ def translate_text(text, target_language):
     user_message = f"Translate the following text to {target_language}:\n\n{text}"
     
     body = {
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-4o-mini",
         "messages": [
             {"role": "system", "content": system_message},
             {"role": "user", "content": user_message}
@@ -176,7 +176,8 @@ def process_presentation(input_file, target_language):
             process_shapes_recursive(slide.shapes, target_language)
             pbar.update(1)
 
-    output_file = f"{target_language}_{os.path.basename(input_file)}"
+    file_name = knio.flow_variables["file-upload-input (file name)"]
+    output_file = f"{target_language}_{file_name}"
     try:
         input_ppt.save(output_file)
         print(f"Saved as {output_file}")
