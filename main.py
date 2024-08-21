@@ -93,7 +93,7 @@ def translate_text(text, target_language):
         ],
         "max_tokens": 1000,
         "n": 1,
-        "temperature": 0.3
+        "temperature": 0.1
     }
     
     response = requests.post(url, headers=headers, json=body)
