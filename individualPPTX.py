@@ -6,13 +6,24 @@ import re
 from pptx import Presentation
 from pptx.util import Pt
 from tqdm import tqdm  # Add tqdm for the progress bar
+import urllib.parse # handle spaces in file names
+
+# Function to remove knime path syntax
+def knime_uri_to_absolute_path(uri):
+    base_path = ""
+    decoded_uri = urllib.parse.unquote(uri)  # Decode URL-encoded characters
+    if decoded_uri.startswith("knime://knime.workflow"):
+        relative_path = decoded_uri.replace("knime://knime.workflow", "")
+        return os.path.join(base_path, relative_path.lstrip("/"))
+    return decoded_uri
 
 # Retrieve the file path and target language from the KNIME flow variables
-input_file = knio.flow_variables["file-upload-input"]
-target_language = knio.flow_variables.get("target-language", "English")  # Use a default if not set
+input_file = knime_uri_to_absolute_path(knio.flow_variables["file-upload-input (URL)"])
+target_language = knio.flow_variables.get("target-language", "English")  # Use a default if not provided
+temp_output_location = knime_uri_to_absolute_path(knio.flow_variables["temp_dir_path_created_location"]) # location of temp file created
 
 # Directly set the OpenAI API key as plain text
-API_KEY = "Your API KEY HERE"
+API_KEY = "YOUR API KEY HERE"
 
 # Check for API key
 if not API_KEY:
@@ -161,7 +172,7 @@ def process_shapes_recursive(shapes, target_language):
             process_shapes_recursive(shape.shapes, target_language)
 
 # Process the entire presentation
-def process_presentation(input_file, target_language):
+def process_presentation(input_file, target_language, temp_output_location):
     print(f"Opening {input_file}")
     try:
         input_ppt = Presentation(input_file)
@@ -176,8 +187,13 @@ def process_presentation(input_file, target_language):
             process_shapes_recursive(slide.shapes, target_language)
             pbar.update(1)
 
+    # works, but a bunch of numbers get added to name when saving
+    #file_name = os.path.basename(input_file)
+    #output_file = os.path.join(temp_output_location, f"{target_language}_{file_name}")
+    
     file_name = knio.flow_variables["file-upload-input (file name)"]
-    output_file = f"{target_language}_{file_name}"
+    output_file = os.path.join(temp_output_location, f"{target_language}_{file_name}")
+    
     try:
         input_ppt.save(output_file)
         print(f"Saved as {output_file}")
@@ -185,11 +201,10 @@ def process_presentation(input_file, target_language):
     except Exception as e:
         print(f"Error saving file {output_file}: {e}")
         return None
-
 # Main function to initiate processing
 def main():
     
-    output_file = process_presentation(input_file, target_language)
+    output_file = process_presentation(input_file, target_language, temp_output_location)
     
     if output_file:
         # Set the output file path as a KNIME flow variable
